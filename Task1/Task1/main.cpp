@@ -1,23 +1,14 @@
 #include <iostream>
-#include <algorithm>
-#include <chrono>
 #include <ctime>
-#include <future>
+#include <chrono>
+#include <fstream>
 
 using namespace std;
 using namespace std::chrono;
 
-void print_array(int* arr, int n) {
-    int limit = (n > 20) ? 20 : n;
-    for (int i = 0; i < limit; i++) {
-        cout << arr[i] << " ";
-    }
-    if (n > 20) cout << "...";
-    cout << endl;
-}
-
 long long sort_shell(int* arr, int n) {
     auto t1 = high_resolution_clock::now();
+
     for (int d = n / 2; d > 0; d /= 2) {
         for (int i = d; i < n; i++) {
             int temp = arr[i];
@@ -27,30 +18,37 @@ long long sort_shell(int* arr, int n) {
             arr[j] = temp;
         }
     }
+
     auto t2 = high_resolution_clock::now();
     return duration_cast<microseconds>(t2 - t1).count();
 }
 
 long long sort_selection(int* arr, int n) {
     auto t1 = high_resolution_clock::now();
+
     for (int i = 0; i < n - 1; i++) {
         int min_idx = i;
         for (int j = i + 1; j < n; j++)
             if (arr[j] < arr[min_idx]) min_idx = j;
         swap(arr[i], arr[min_idx]);
     }
+
     auto t2 = high_resolution_clock::now();
     return duration_cast<microseconds>(t2 - t1).count();
 }
 
 long long sort_counting(int* arr, int n) {
     auto t1 = high_resolution_clock::now();
-    if (n <= 0) return 0;
+
     int max_val = arr[0];
-    for (int i = 1; i < n; i++) if (arr[i] > max_val) max_val = arr[i];
+    for (int i = 1; i < n; i++)
+        if (arr[i] > max_val) max_val = arr[i];
 
     int* counts = new int[max_val + 1]();
-    for (int i = 0; i < n; i++) counts[arr[i]]++;
+
+    for (int i = 0; i < n; i++)
+        counts[arr[i]]++;
+
     int k = 0;
     for (int i = 0; i <= max_val; i++) {
         while (counts[i] > 0) {
@@ -58,65 +56,73 @@ long long sort_counting(int* arr, int n) {
             counts[i]--;
         }
     }
+
     delete[] counts;
+
     auto t2 = high_resolution_clock::now();
     return duration_cast<microseconds>(t2 - t1).count();
 }
 
 int main() {
-    setlocale(LC_ALL, "Ukrainian");
     srand(time(0));
 
     int test_sizes[] = { 18, 160, 1024, 4096, 32600, 128000 };
 
-    for (int n : test_sizes) {
-        cout << "\n--- n = " << n << " ---" << endl;
+    ofstream file("results.txt");
 
-        int* data = new int[n];
-        int* copy1 = new int[n];
-        int* copy2 = new int[n];
-        int* copy3 = new int[n];
+    cout << "n\tShell\tSelection\tCounting\n";
+    file << "n Shell Selection Counting\n";
 
-        for (int i = 0; i < n; i++) {
-            data[i] = rand() % 10000;
-            copy1[i] = data[i];
-            copy2[i] = data[i];
-            copy3[i] = data[i];
+    for (int s = 0; s < 6; s++) {
+        int n = test_sizes[s];
+
+        long long sum_shell = 0;
+        long long sum_selection = 0;
+        long long sum_counting = 0;
+
+        for (int run = 0; run < 5; run++) {
+
+            int* a = new int[n];
+            int* b = new int[n];
+            int* c = new int[n];
+
+            for (int i = 0; i < n; i++) {
+                int val = rand() % 10000;
+                a[i] = val;
+                b[i] = val;
+                c[i] = val;
+            }
+
+            sum_shell += sort_shell(a, n);
+
+            if (n <= 20000)
+                sum_selection += sort_selection(b, n);
+
+            sum_counting += sort_counting(c, n);
+
+            delete[] a;
+            delete[] b;
+            delete[] c;
         }
 
-        auto fut1 = async(launch::async, sort_shell, copy1, n);
-        auto fut2 = async(launch::async, sort_selection, copy2, n);
-        auto fut3 = async(launch::async, sort_counting, copy3, n);
+        long long avg_shell = sum_shell / 5;
+        long long avg_selection = (n <= 20000) ? sum_selection / 5 : 0;
+        long long avg_counting = sum_counting / 5;
 
-        cout << "Shell: " << fut1.get() << " mks" << endl;
-        cout << "Selection: " << fut2.get() << " mks" << endl;
-        cout << "Counting: " << fut3.get() << " mks" << endl;
+        if (n <= 20000)
+            cout << n << "\t" << avg_shell << "\t" << avg_selection << "\t\t" << avg_counting << endl;
+        else
+            cout << n << "\t" << avg_shell << "\t" << "-" << "\t\t" << avg_counting << endl;
 
-        if (n == 18) {
-            cout << "Array: ";
-            print_array(copy1, n);
-        }
-
-        cout << "Search: ";
-        int key;
-        cin >> key;
-
-        int low = 0, high = n - 1, res = -1;
-        while (low <= high) {
-            int mid = low + (high - low) / 2;
-            if (copy1[mid] == key) { res = mid; break; }
-            if (copy1[mid] < key) low = mid + 1;
-            else high = mid - 1;
-        }
-
-        if (res != -1) cout << "Index: " << res << endl;
-        else cout << "Not found" << endl;
-
-        delete[] data;
-        delete[] copy1;
-        delete[] copy2;
-        delete[] copy3;
+        if (n <= 20000)
+            file << n << " " << avg_shell << " " << avg_selection << " " << avg_counting << endl;
+        else
+            file << n << " " << avg_shell << " - " << avg_counting << endl;
     }
+
+    file.close();
+
+    cout << "\nРезультати записані у файл results.txt\n";
 
     return 0;
 }

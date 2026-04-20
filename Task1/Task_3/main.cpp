@@ -1,24 +1,26 @@
 #include <iostream>
 #include <iomanip>
+#include <cstdlib>
+#include <ctime>
 
 using namespace std;
 
-void vvedennya(double** a, int n) {
+void zapovnennya(double** a, int n) {
+    srand(time(0));
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
-            cin >> a[i][j];
+            a[i][j] = rand() % 21 - 10;
         }
     }
 }
 
-int obchisliti_sektor1(double** a, int n) {
+int sektor1(double** a, int n) {
     int suma = 0;
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
-            if (i < j && (i + j) < (n - 1)) {
-                int temp = (int)a[i][j];
-                if (temp % 2 != 0) {
-                    suma += temp;
+            if (i < j && i + j < n - 1) {
+                if ((int)a[i][j] % 2 != 0) {
+                    suma += (int)a[i][j];
                 }
             }
         }
@@ -26,45 +28,48 @@ int obchisliti_sektor1(double** a, int n) {
     return suma;
 }
 
-double znayti_ser_arifm(double** a, int n) {
-    double suma_v = 0;
-    int k_v = 0;
+double serednye_neg(double** a, int n) {
+    double suma = 0;
+    int k = 0;
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
             if (a[i][j] < 0) {
-                suma_v += a[i][j];
-                k_v++;
+                suma += a[i][j];
+                k++;
             }
         }
     }
-    if (k_v > 0) return suma_v / k_v;
-    return 0;
+    return (k == 0) ? 0 : suma / k;
 }
 
-int obrobka_sektor10(double** a, int n, double znachennya) {
-    int k_s10 = 0;
+int sektor10(double** a, int n, double ser) {
+    int k = 0;
+    int mid = n / 2;
+
     for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            if (j > (n - 1) / 2.0) {
-                k_s10++;
-                a[i][j] = znachennya;
-            }
+        for (int j = mid + 1; j < n; j++) {
+            a[i][j] = ser;
+            k++;
         }
     }
-    return k_s10;
+    return k;
 }
 
 void vivod(double** a, int n) {
+    cout << "\nМатриця:\n";
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
-            cout << setw(10) << a[i][j] << " ";
+            cout << setw(6) << a[i][j];
         }
         cout << endl;
     }
 }
 
 int main() {
+    setlocale(LC_ALL, "ukr");
+
     int n;
+    cout << "Введіть розмір матриці: ";
     cin >> n;
 
     double** a = new double* [n];
@@ -72,21 +77,20 @@ int main() {
         a[i] = new double[n];
     }
 
-    vvedennya(a, n);
+    zapovnennya(a, n);
+    vivod(a, n);
 
-    int res1 = obchisliti_sektor1(a, n);
-    double res_ser = znayti_ser_arifm(a, n);
-    int res10 = obrobka_sektor10(a, n, res_ser);
+    int s1 = sektor1(a, n);
+    double avg = serednye_neg(a, n);
+    int k10 = sektor10(a, n, avg);
 
-    cout << res1 << endl;
-    cout << res10 << endl;
-    cout << res_ser << endl;
+    cout << "\nСума непарних у секторі 1: " << s1 << endl;
+    cout << "Кількість елементів у секторі 10: " << k10 << endl;
+    cout << "Середнє від'ємних: " << avg << endl;
 
     vivod(a, n);
 
-    for (int i = 0; i < n; i++) {
-        delete[] a[i];
-    }
+    for (int i = 0; i < n; i++) delete[] a[i];
     delete[] a;
 
     return 0;
